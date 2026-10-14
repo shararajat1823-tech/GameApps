@@ -49,6 +49,8 @@ class _Seg {
   final double curve;
   late _P p1;
   late _P p2;
+  int sprite = 0; // 0 none, 1 tree, 2 grandstand, 3 billboard, 4 pole
+  double spriteSide = 1; // -1 left, +1 right
   bool get dark => (index ~/ _rumble) % 2 == 0;
 }
 
@@ -99,7 +101,22 @@ class _RacerScreenState extends State<RacerScreen> {
       final curve = 2.6 * sin(i * 0.035) + 1.4 * sin(i * 0.0125);
       final y1 = 2600 * sin(i * 0.022);
       final y2 = 2600 * sin((i + 1) * 0.022);
-      _segments.add(_Seg(i, curve, y1, y2));
+      final seg = _Seg(i, curve, y1, y2);
+      // Scatter roadside scenery for depth and a sense of speed.
+      if (i % 6 == 0) {
+        seg.spriteSide = _rng.nextBool() ? -1 : 1;
+        final r = _rng.nextDouble();
+        if (r < 0.55) {
+          seg.sprite = 1; // tree
+        } else if (r < 0.72) {
+          seg.sprite = 4; // pole
+        } else if (r < 0.9) {
+          seg.sprite = 3; // billboard
+        } else {
+          seg.sprite = 2; // grandstand
+        }
+      }
+      _segments.add(seg);
     }
   }
 
@@ -248,6 +265,7 @@ class _RacerScreenState extends State<RacerScreen> {
                               shake: _shake,
                               steer: _steer,
                               drs: _drs,
+                              speedPercent: _speed / _maxSpeed,
                             ),
                           ),
                           _hud(),
@@ -476,6 +494,7 @@ class _RoadPainter extends CustomPainter {
     required this.shake,
     required this.steer,
     required this.drs,
+    required this.speedPercent,
   });
 
   final List<_Seg> segments;
@@ -485,6 +504,7 @@ class _RoadPainter extends CustomPainter {
   final double shake;
   final int steer;
   final bool drs;
+  final double speedPercent;
 
   // Circuit colours.
   static const _grassLight = Color(0xFF3BA55D);
@@ -531,6 +551,8 @@ class _RoadPainter extends CustomPainter {
     double dx = -(baseSeg.curve * percent);
     double maxy = size.height;
     final visible = <int>{};
+    // Scenery to draw after the road: (screenX, groundY, scale, type).
+    final scenery = <(double, double, double, int)>[];
 
     for (int n = 0; n < _drawDistance; n++) {
       final idx = (baseIndex + n) % _segCount;
@@ -547,8 +569,20 @@ class _RoadPainter extends CustomPainter {
       if ((seg.p1.wz - camZ) <= _camDepth || seg.p2.sy >= maxy) continue;
 
       _renderSegment(canvas, size, seg);
+      if (seg.sprite != 0) {
+        final sScale = seg.p1.scale;
+        final sx = seg.p1.sx +
+            sScale * (seg.spriteSide * _roadWidth * 1.25) * size.width / 2;
+        scenery.add((sx, seg.p1.sy, sScale, seg.sprite));
+      }
       visible.add(idx);
       maxy = seg.p2.sy;
+    }
+
+    // Draw scenery far-to-near so nearer objects overlap distant ones.
+    scenery.sort((a, b) => a.$3.compareTo(b.$3));
+    for (final s in scenery) {
+      _drawScenery(canvas, size, s.$1, s.$2, s.$3, s.$4);
     }
 
     for (final car in field) {
@@ -571,6 +605,27 @@ class _RoadPainter extends CustomPainter {
       ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
     canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), vignette);
 
+    // Speed lines streaking outward when travelling fast.
+    if (speedPercent > 0.6) {
+      final rnd2 = Random(7);
+      final alpha = ((speedPercent - 0.6) / 0.4).clamp(0.0, 1.0) * 0.5;
+      final paint = Paint()
+        ..color = Colors.white.withValues(alpha: alpha)
+        ..strokeWidth = 2;
+      final cx = size.width / 2;
+      final cy = size.height * 0.62;
+      for (int i = 0; i < 12; i++) {
+        final ang = rnd2.nextDouble() * 2 * pi;
+        final r0 = size.width * (0.5 + rnd2.nextDouble() * 0.2);
+        final r1 = r0 + size.width * 0.18;
+        canvas.drawLine(
+          Offset(cx + cos(ang) * r0, cy + sin(ang) * r0),
+          Offset(cx + cos(ang) * r1, cy + sin(ang) * r1),
+          paint,
+        );
+      }
+    }
+
     canvas.restore();
   }
 
@@ -583,6 +638,21 @@ class _RoadPainter extends CustomPainter {
         colors: [Color(0xFF2C6FB5), Color(0xFF6FB7E8), Color(0xFFBFE3F5)],
       ).createShader(Rect.fromLTWH(0, 0, size.width, horizon));
     canvas.drawRect(Rect.fromLTWH(0, 0, size.width, horizon), sky);
+
+    // Distant hill silhouette along the horizon.
+    final hills = Path()..moveTo(0, horizon);
+    for (double hx = 0; hx <= size.width; hx += size.width / 6) {
+      hills.quadraticBezierTo(
+        hx + size.width / 12,
+        horizon - 34 - 14 * sin(hx * 0.9),
+        hx + size.width / 6,
+        horizon,
+      );
+    }
+    hills
+      ..lineTo(size.width, horizon)
+      ..close();
+    canvas.drawPath(hills, Paint()..color = const Color(0xFF2B6E45));
 
     // A few soft clouds.
     final cloud = Paint()..color = Colors.white.withValues(alpha: 0.75);
@@ -655,6 +725,107 @@ class _RoadPainter extends CustomPainter {
           Rect.fromLTWH(x - w * 0.42, top - w * 0.06, w * 0.84, w * 0.1),
           Radius.circular(w * 0.03)),
       Paint()..color = const Color(0xFF1F1F27),
+    );
+  }
+
+  void _drawScenery(
+      Canvas c, Size size, double x, double groundY, double scale, int type) {
+    final unit = scale * size.width / 2; // world unit -> pixels
+    if (unit <= 0 || unit * 200 < 1.5) return; // too far to matter
+    switch (type) {
+      case 1:
+        _tree(c, x, groundY, unit);
+      case 2:
+        _grandstand(c, x, groundY, unit);
+      case 3:
+        _billboard(c, x, groundY, unit);
+      case 4:
+        _pole(c, x, groundY, unit);
+    }
+  }
+
+  void _tree(Canvas c, double x, double groundY, double u) {
+    final trunkW = 150 * u;
+    final trunkH = 700 * u;
+    c.drawRect(
+      Rect.fromLTWH(x - trunkW / 2, groundY - trunkH, trunkW, trunkH),
+      Paint()..color = const Color(0xFF6B4A2B),
+    );
+    final r = 780 * u;
+    final cy = groundY - trunkH - r * 0.7;
+    final leaf = Paint()..color = const Color(0xFF2E7D32);
+    final leafHi = Paint()..color = const Color(0xFF43A047);
+    c.drawCircle(Offset(x - r * 0.5, cy + r * 0.2), r * 0.7, leaf);
+    c.drawCircle(Offset(x + r * 0.5, cy + r * 0.2), r * 0.7, leaf);
+    c.drawCircle(Offset(x, cy - r * 0.25), r * 0.8, leafHi);
+  }
+
+  void _pole(Canvas c, double x, double groundY, double u) {
+    final w = 90 * u;
+    final h = 2600 * u;
+    c.drawRect(Rect.fromLTWH(x - w / 2, groundY - h, w, h),
+        Paint()..color = const Color(0xFFBFC4CC));
+    c.drawRRect(
+      RRect.fromRectAndRadius(
+          Rect.fromLTWH(x - w * 2, groundY - h, w * 4, w * 1.4),
+          Radius.circular(w * 0.4)),
+      Paint()..color = const Color(0xFF8A9099),
+    );
+  }
+
+  void _billboard(Canvas c, double x, double groundY, double u) {
+    final postH = 1200 * u;
+    final post = Paint()..color = const Color(0xFF9AA0A8);
+    c.drawRect(Rect.fromLTWH(x - 520 * u, groundY - postH, 120 * u, postH), post);
+    c.drawRect(Rect.fromLTWH(x + 400 * u, groundY - postH, 120 * u, postH), post);
+    final panelW = 2600 * u;
+    final panelH = 1300 * u;
+    final top = groundY - postH - panelH * 0.75;
+    final panel = Rect.fromCenter(
+        center: Offset(x, top + panelH / 2), width: panelW, height: panelH);
+    c.drawRRect(
+      RRect.fromRectAndRadius(panel, Radius.circular(60 * u)),
+      Paint()..color = const Color(0xFF1E6CE0),
+    );
+    c.drawRRect(
+      RRect.fromRectAndRadius(panel.deflate(70 * u), Radius.circular(40 * u)),
+      Paint()..color = const Color(0xFF0B2E73),
+    );
+    if (panelW > 60) {
+      final tp = TextPainter(
+        text: TextSpan(
+          text: 'GP',
+          style: TextStyle(
+            color: AppColors.gold,
+            fontSize: panelH * 0.55,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      tp.paint(c, Offset(x - tp.width / 2, top + panelH * 0.2));
+    }
+  }
+
+  void _grandstand(Canvas c, double x, double groundY, double u) {
+    final w = 5200 * u;
+    final h = 1500 * u;
+    final rect = Rect.fromLTWH(x - w / 2, groundY - h, w, h);
+    c.drawRect(rect, Paint()..color = const Color(0xFF55606E));
+    // Crowd stripes.
+    const crowd = [Color(0xFFE63946), Color(0xFFF1FAEE), Color(0xFF457B9D)];
+    final rows = 5;
+    for (int i = 0; i < rows; i++) {
+      final ry = groundY - h + (h / rows) * i;
+      c.drawRect(
+        Rect.fromLTWH(x - w / 2, ry, w, h / rows * 0.7),
+        Paint()..color = crowd[i % crowd.length].withValues(alpha: 0.85),
+      );
+    }
+    // Roof.
+    c.drawRect(
+      Rect.fromLTWH(x - w / 2 - 120 * u, groundY - h - 260 * u, w + 240 * u, 300 * u),
+      Paint()..color = const Color(0xFF2B3240),
     );
   }
 
