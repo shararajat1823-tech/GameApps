@@ -14,9 +14,19 @@ void main() {
     await tester.pumpWidget(const FreeGamesApp());
 
     expect(find.text('ARCADE'), findsOneWidget);
-    for (final name in const ['Stack', 'Flip', 'Dodge']) {
+    for (final name in const ['Grand Prix', 'Stack', 'Flip', 'Dodge']) {
       expect(find.text(name), findsOneWidget, reason: 'missing card: $name');
     }
+  });
+
+  testWidgets('Tapping Grand Prix opens the game', (tester) async {
+    await tester.pumpWidget(const FreeGamesApp());
+
+    await tester.tap(find.text('Grand Prix'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('km/h'), findsOneWidget);
+    expect(find.text('GEAR'), findsOneWidget);
   });
 
   testWidgets('Tapping Stack opens the game', (tester) async {
