@@ -14,9 +14,30 @@ void main() {
     await tester.pumpWidget(const FreeGamesApp());
 
     expect(find.text('ARCADE'), findsOneWidget);
-    for (final name in const ['Grand Prix', 'Stack', 'Flip', 'Dodge']) {
+    for (final name in const [
+      'Race Online',
+      'Grand Prix',
+      'Stack',
+      'Flip',
+      'Dodge',
+    ]) {
       expect(find.text(name), findsOneWidget, reason: 'missing card: $name');
     }
+  });
+
+  testWidgets('Tapping Race Online opens the lobby entry', (tester) async {
+    tester.view.physicalSize = const Size(1200, 2800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(const FreeGamesApp());
+
+    await tester.tap(find.text('Race Online'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Create Room'), findsOneWidget);
+    expect(find.text('Join Room'), findsOneWidget);
   });
 
   testWidgets('Tapping Grand Prix opens the game', (tester) async {

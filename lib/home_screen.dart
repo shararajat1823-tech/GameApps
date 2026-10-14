@@ -4,6 +4,7 @@ import 'games/dodge_screen.dart';
 import 'games/flip_screen.dart';
 import 'games/racer_screen.dart';
 import 'games/stack_screen.dart';
+import 'multiplayer/lobby_screen.dart';
 import 'theme.dart';
 
 class _GameEntry {
@@ -23,6 +24,13 @@ class _GameEntry {
 }
 
 const List<_GameEntry> _games = [
+  _GameEntry(
+    title: 'Race Online',
+    subtitle: 'Create a room, invite up to 6 friends, race together. (preview)',
+    icon: Icons.groups,
+    gradient: [Color(0xFF11998E), Color(0xFF38EF7D)],
+    builder: _buildMultiplayer,
+  ),
   _GameEntry(
     title: 'Grand Prix',
     subtitle: 'Formula racing — carve the circuit, chase the fastest lap.',
@@ -53,6 +61,7 @@ const List<_GameEntry> _games = [
   ),
 ];
 
+Widget _buildMultiplayer(BuildContext _) => const MultiplayerScreen();
 Widget _buildRacer(BuildContext _) => const RacerScreen();
 Widget _buildStack(BuildContext _) => const StackScreen();
 Widget _buildFlip(BuildContext _) => const FlipScreen();
