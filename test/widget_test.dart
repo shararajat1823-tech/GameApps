@@ -1,15 +1,30 @@
+import 'dart:ui';
+
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:free_games/main.dart';
 
 void main() {
-  testWidgets('Home screen shows the title and games', (tester) async {
+  testWidgets('Home screen shows all games', (tester) async {
+    // Use a tall window so every tile in the scrolling grid is built.
+    tester.view.physicalSize = const Size(1200, 2800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     await tester.pumpWidget(const FreeGamesApp());
 
     expect(find.text('FREE GAMES'), findsOneWidget);
-    expect(find.text('Memory Match'), findsOneWidget);
-    expect(find.text('Bubble Pop'), findsOneWidget);
-    expect(find.text('Reaction Time'), findsOneWidget);
+    for (final name in const [
+      'Memory Match',
+      '2048',
+      'Sliding Puzzle',
+      'Simon',
+      'Reaction Time',
+      'Bubble Pop',
+    ]) {
+      expect(find.text(name), findsOneWidget, reason: 'missing tile: $name');
+    }
   });
 
   testWidgets('Tapping Memory Match opens the game', (tester) async {
@@ -22,12 +37,12 @@ void main() {
     expect(find.text('Shuffle / Restart'), findsOneWidget);
   });
 
-  testWidgets('Tapping Reaction Time opens the game', (tester) async {
+  testWidgets('Tapping 2048 opens the game', (tester) async {
     await tester.pumpWidget(const FreeGamesApp());
 
-    await tester.tap(find.text('Reaction Time'));
+    await tester.tap(find.text('2048'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Tap anywhere to start'), findsOneWidget);
+    expect(find.text('New Game'), findsOneWidget);
   });
 }
