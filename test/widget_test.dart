@@ -7,17 +7,27 @@ void main() {
     await tester.pumpWidget(const FreeGamesApp());
 
     expect(find.text('FREE GAMES'), findsOneWidget);
-    expect(find.text('Tic-Tac-Toe'), findsOneWidget);
-    expect(find.text('Ludo'), findsOneWidget);
+    expect(find.text('Memory Match'), findsOneWidget);
+    expect(find.text('Bubble Pop'), findsOneWidget);
+    expect(find.text('Reaction Time'), findsOneWidget);
   });
 
-  testWidgets('Tapping Tic-Tac-Toe opens the game', (tester) async {
+  testWidgets('Tapping Memory Match opens the game', (tester) async {
     await tester.pumpWidget(const FreeGamesApp());
 
-    await tester.tap(find.text('Tic-Tac-Toe'));
+    await tester.tap(find.text('Memory Match'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Your turn (X)'), findsOneWidget);
-    expect(find.text('Restart'), findsOneWidget);
+    expect(find.text('Moves'), findsOneWidget);
+    expect(find.text('Shuffle / Restart'), findsOneWidget);
+  });
+
+  testWidgets('Tapping Reaction Time opens the game', (tester) async {
+    await tester.pumpWidget(const FreeGamesApp());
+
+    await tester.tap(find.text('Reaction Time'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Tap anywhere to start'), findsOneWidget);
   });
 }

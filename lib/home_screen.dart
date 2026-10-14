@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
-import 'games/tic_tac_toe_screen.dart';
+import 'games/bubble_pop_screen.dart';
+import 'games/memory_match_screen.dart';
+import 'games/reaction_time_screen.dart';
 import 'theme.dart';
 
 class _GameEntry {
@@ -26,20 +28,22 @@ class HomeScreen extends StatelessWidget {
 
   List<_GameEntry> get _games => [
         _GameEntry(
-          title: 'Tic-Tac-Toe',
-          subtitle: 'Beat the computer in 3-in-a-row',
-          icon: Icons.grid_3x3,
-          builder: (_) => const TicTacToeScreen(),
+          title: 'Memory Match',
+          subtitle: 'Flip cards and find the pairs',
+          icon: Icons.style,
+          builder: (_) => const MemoryMatchScreen(),
         ),
-        const _GameEntry(
-          title: 'Ludo',
-          subtitle: 'Classic 4-player board game',
-          icon: Icons.casino,
+        _GameEntry(
+          title: 'Bubble Pop',
+          subtitle: 'Tap floating bubbles — calm & satisfying',
+          icon: Icons.bubble_chart,
+          builder: (_) => const BubblePopScreen(),
         ),
-        const _GameEntry(
-          title: 'Ragdoll Archers',
-          subtitle: 'Slingshot archery duel',
-          icon: Icons.sports_esports,
+        _GameEntry(
+          title: 'Reaction Time',
+          subtitle: 'Wait for green, then tap fast',
+          icon: Icons.bolt,
+          builder: (_) => const ReactionTimeScreen(),
         ),
       ];
 
