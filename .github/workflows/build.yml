@@ -1,4 +1,4 @@
-name: Build Debug APK
+name: Build App
 
 on:
   push:
@@ -9,7 +9,8 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  android:
+    name: Build Android APK
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -21,22 +22,27 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
         with:
-          gradle-version: '8.10.2'
+          flutter-version: '3.41.6'
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Run tests
+        run: flutter test
 
       - name: Build debug APK
-        run: gradle assembleDebug --no-daemon --stacktrace
+        run: flutter build apk --debug
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
 
       - name: Publish to latest-debug release
         if: github.ref == 'refs/heads/main'
@@ -44,4 +50,27 @@ jobs:
         with:
           tag_name: latest-debug
           name: Latest Debug Build
-          files: app/build/outputs/apk/debug/app-debug.apk
+          files: build/app/outputs/flutter-apk/app-debug.apk
+
+  # ---------------------------------------------------------------------------
+  # iOS build — ENABLED LATER, once you have an Apple Developer account.
+  #
+  # iOS apps can only be built on a macOS machine (GitHub provides macos-latest
+  # runners for this). Producing an installable app for a real iPhone also needs
+  # Apple code-signing (certificate + provisioning profile) stored as repo
+  # secrets, and distribution via TestFlight. Until that's set up, this job is
+  # left commented out so the Android build keeps working on its own.
+  #
+  # ios:
+  #   name: Build iOS (needs Apple Developer account)
+  #   runs-on: macos-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: subosito/flutter-action@v2
+  #       with:
+  #         flutter-version: '3.41.6'
+  #         channel: stable
+  #         cache: true
+  #     - run: flutter pub get
+  #     - run: flutter build ios --debug --no-codesign
+  # ---------------------------------------------------------------------------
