@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'games/dodge_screen.dart';
 import 'games/flip_screen.dart';
+import 'games/racer_screen.dart';
 import 'games/stack_screen.dart';
 import 'theme.dart';
 
@@ -22,6 +23,13 @@ class _GameEntry {
 }
 
 const List<_GameEntry> _games = [
+  _GameEntry(
+    title: 'Neon Racer',
+    subtitle: 'Pseudo-3D racer — carve curves, crest hills, dodge traffic at speed.',
+    icon: Icons.directions_car_filled,
+    gradient: [Color(0xFF00C6FB), Color(0xFF005BEA)],
+    builder: _buildRacer,
+  ),
   _GameEntry(
     title: 'Stack',
     subtitle: 'Drop blocks dead-center — or lose the overhang. Speeds up fast.',
@@ -45,6 +53,7 @@ const List<_GameEntry> _games = [
   ),
 ];
 
+Widget _buildRacer(BuildContext _) => const RacerScreen();
 Widget _buildStack(BuildContext _) => const StackScreen();
 Widget _buildFlip(BuildContext _) => const FlipScreen();
 Widget _buildDodge(BuildContext _) => const DodgeScreen();

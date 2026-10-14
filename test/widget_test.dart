@@ -14,9 +14,18 @@ void main() {
     await tester.pumpWidget(const FreeGamesApp());
 
     expect(find.text('ARCADE'), findsOneWidget);
-    for (final name in const ['Stack', 'Flip', 'Dodge']) {
+    for (final name in const ['Neon Racer', 'Stack', 'Flip', 'Dodge']) {
       expect(find.text(name), findsOneWidget, reason: 'missing card: $name');
     }
+  });
+
+  testWidgets('Tapping Neon Racer opens the game', (tester) async {
+    await tester.pumpWidget(const FreeGamesApp());
+
+    await tester.tap(find.text('Neon Racer'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('km/h'), findsOneWidget);
   });
 
   testWidgets('Tapping Stack opens the game', (tester) async {
@@ -29,6 +38,11 @@ void main() {
   });
 
   testWidgets('Tapping Dodge opens the game', (tester) async {
+    tester.view.physicalSize = const Size(1200, 2600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     await tester.pumpWidget(const FreeGamesApp());
 
     await tester.tap(find.text('Dodge'));
